@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>shixingya · 作品集</title>
+  <meta name="description" content="shixingya 的 GitHub Pages 站点入口。" />
+  <meta http-equiv="refresh" content="1; url=./rage-gesture-studio/" />
+  <link rel="canonical" href="./rage-gesture-studio/" />
+  <script>
+    // 保留访问路径与查询参数，转发到应用子站；无 path 时默认进 rage-gesture-studio
+    (function () {
+      var base = './rage-gesture-studio/';
+      var rest = location.pathname.replace(/^\/(shixingya\.github.io)?\/?/, '');
+      var target = rest ? base + rest + location.search + location.hash : base;
+      setTimeout(function () { try { location.replace(target); } catch (e) {} }, 300);
+    })();
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; display: grid; place-items: center;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: radial-gradient(1200px 600px at 50% -10%, #1e293b, #0b1120 60%, #060a14);
+      color: #e2e8f0; text-align: center; padding: 24px;
+    }
+    .card { max-width: 460px; }
+    .emoji { font-size: 60px; line-height: 1; }
+    h1 { font-size: 22px; margin: 16px 0 6px; }
+    p { color: #94a3b8; font-size: 14px; margin: 6px 0 22px; }
+    a.btn {
+      display: inline-block; text-decoration: none; color: #fff; font-weight: 700;
+      background: linear-gradient(90deg, #f97316, #ef4444); padding: 12px 22px;
+      border-radius: 12px; box-shadow: 0 8px 24px rgba(239, 68, 68, .35);
+    }
+    .spinner { margin: 18px auto 0; width: 26px; height: 26px; border: 3px solid #334155;
+      border-top-color: #f97316; border-radius: 50%; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    small { color: #475569; display: block; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="emoji">😤</div>
+    <h1>正在进入 手势宣泄室</h1>
+    <p>如果你的浏览器没有自动跳转，请点击下面的按钮。</p>
+    <a class="btn" href="./rage-gesture-studio/">🎮 立即开始</a>
+    <div class="spinner"></div>
+    <small>shixingya · GitHub Pages</small>
+  </div>
+</body>
+</html>

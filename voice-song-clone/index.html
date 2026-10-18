@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>音色克隆 · 唱出你的声音</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 背景氛围层 -->
+  <div class="bg" aria-hidden="true">
+    <i class="orb orb-a"></i>
+    <i class="orb orb-b"></i>
+    <i class="orb orb-c"></i>
+  </div>
+
+  <!-- 顶部 -->
+  <header class="hero">
+    <button type="button" id="settingsBtn" class="settings-btn" title="连接设置（后端地址 / API Token）" aria-haspopup="dialog" aria-controls="settingsModal">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.09a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.09a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg>
+      <span>连接</span>
+    </button>
+    <div class="hero-badge"><i class="dot"></i>VOICE CLONE · STUDIO</div>
+    <h1>音色克隆 · <span class="grad">唱出你的声音</span></h1>
+    <p class="sub">三步完成：录制一段你的声音作为<b>音色参考</b>，然后<b>清唱</b>一段歌或<b>粘贴歌曲链接</b>，AI 会用你的音色把它唱出来</p>
+  </header>
+
+  <main>
+    <!-- 声音模型：选择 / 训练专属音色模型（两种转换模式共用同一模型下拉） -->
+    <section class="step" id="stepVoice">
+      <div class="step-head">
+        <span class="step-num">00</span>
+        <div class="step-titles">
+          <h2>声音模型</h2>
+          <p>用内置零样本模型直接开唱，或用你的声音素材训练专属模型</p>
+        </div>
+      </div>
+      <div class="card model-card">
+        <div class="setting-block">
+          <div class="setting-head">
+            <label for="voiceSelect">声音模型</label>
+            <button type="button" id="modelsRefresh" class="btn btn-sm" title="刷新模型列表" aria-label="刷新模型列表">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 12a8.5 8.5 0 1 1-2.49-6.01"/><path d="M20.5 3.5V8H16"/></svg>
+              <span>刷新</span>
+            </button>
+          </div>
+          <select id="voiceSelect" class="model-select" aria-label="声音模型"></select>
+          <p class="note model-note" id="modelNote" hidden></p>
+        </div>
+
+        <!-- 训练折叠区：模型名 + 多文件素材 + 参数 → 提交后轮询进度（四阶段） -->
+        <details class="adv train-adv" id="trainAdv">
+          <summary>
+            <span class="adv-ic" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3.5"/><path d="M6.3 6.3l2.5 2.5"/><path d="M17.7 6.3l-2.5 2.5"/><circle cx="12" cy="13.5" r="4.5"/><path d="M12 18v3"/></svg>
+            </span>
+            训练我的音色模型
+            <span class="head-sub">用 10 分钟以上素材训练专属声音模型</span>
+            <i class="chev" aria-hidden="true"></i>
+          </summary>
+          <div class="setting-block">
+            <div class="setting-head">
+              <label for="voiceName">模型名称</label>
+            </div>
+            <input type="text" id="voiceName" class="text-input" maxlength="20" placeholder="如：我的音色 / my-voice" autocomplete="off" spellcheck="false" aria-label="模型名称">
+            <p class="note">中文 / 字母 / 数字 / 连字符 · 不超过 20 字</p>
+          </div>
+          <div class="setting-block">
+            <div class="setting-head">
+              <label for="trainFileInput">训练素材</label>
+            </div>
+            <label class="btn" id="trainFileBtn">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/><path d="M4.5 15.5v3a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-3"/></svg>
+              <span>选择素材音频（可多选）</span>
+              <input type="file" id="trainFileInput" accept=".wav,.mp3,.m4a,.flac,.ogg" multiple hidden>
+            </label>
+            <div class="train-files" id="trainFilesList" hidden></div>
+            <p class="train-files-summary" id="trainFilesSummary" hidden></p>
+            <p class="train-warn" id="trainWarn" hidden></p>
+            <p class="note">支持 wav / mp3 / m4a / flac / ogg · 单文件不超过 50MB · 有效时长合计不少于 3 分钟，建议 10 分钟以上</p>
+          </div>
+          <details class="adv adv-inner" id="trainParamsAdv">
+            <summary>
+              <span class="adv-ic" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 8h9"/><circle cx="17" cy="8" r="2.4"/><path d="M20 16h-9"/><circle cx="7" cy="16" r="2.4"/></svg>
+              </span>
+              训练参数
+              <i class="chev" aria-hidden="true"></i>
+            </summary>
+            <div class="setting-block">
+              <div class="setting-head">
+                <label for="totalEpochs">训练轮数</label>
+                <output id="totalEpochsVal" class="range-val teal">200</output>
+              </div>
+              <input type="range" id="totalEpochs" class="range-teal" min="20" max="500" step="10" value="200" aria-label="训练轮数">
+              <div class="range-scale" aria-hidden="true"><span>20</span><span>200</span><span>500</span></div>
+            </div>
+            <div class="setting-block">
+              <div class="setting-head">
+                <label for="batchSize">批大小</label>
+                <output id="batchSizeVal" class="range-val teal">4</output>
+              </div>
+              <input type="range" id="batchSize" class="range-teal" min="1" max="8" step="1" value="4" aria-label="批大小">
+              <div class="range-scale" aria-hidden="true"><span>1</span><span>4</span><span>8</span></div>
+              <p class="note">保持默认即可 · 10 分钟素材约训练 1~2 小时（依机器性能浮动）</p>
+            </div>
+          </details>
+          <div class="convert-row">
+            <button type="button" id="trainBtn" class="btn btn-primary btn-convert">
+              <span class="when-idle">开始训练</span>
+              <span class="when-busy"><span class="spinner" aria-hidden="true"></span>训练中…</span>
+            </button>
+            <div class="cover-progress" id="trainProgress" hidden>
+              <ol class="stage-list" id="trainStageList">
+                <li data-stage="预处理"><i class="st-dot" aria-hidden="true"></i><span>预处理</span></li>
+                <li data-stage="特征提取"><i class="st-dot" aria-hidden="true"></i><span>特征提取</span></li>
+                <li data-stage="训练"><i class="st-dot" aria-hidden="true"></i><span>训练</span></li>
+                <li data-stage="索引"><i class="st-dot" aria-hidden="true"></i><span>索引</span></li>
+              </ol>
+              <div class="cover-bar" id="trainBar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="训练进度">
+                <i class="cover-bar-fill" id="trainBarFill"></i>
+              </div>
+              <div class="cover-status">
+                <span class="cover-pct" id="trainPct">0%</span>
+                <span class="cover-detail" id="trainDetail"></span>
+              </div>
+              <pre class="train-log" id="trainLog" hidden></pre>
+            </div>
+            <div class="cover-fail" id="trainFail" hidden>
+              <p class="cover-fail-msg" id="trainFailMsg"></p>
+              <button type="button" class="btn btn-sm" id="trainRetry">重新训练</button>
+            </div>
+            <p class="convert-note">训练约 1~2 小时（按 10 分钟素材估算）· 训练期间无法转换 / 翻唱 · 进行中不支持取消，如需放弃可刷新页面</p>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- 第一步：录制音色参考 -->
+    <section class="step" id="step1">
+      <div class="step-head">
+        <span class="step-num">01</span>
+        <div class="step-titles">
+          <h2>录制音色参考</h2>
+          <p>两段音频分别就绪，录音或从文件上传均可</p>
+        </div>
+      </div>
+      <div class="card-grid">
+        <article class="card rec-card" id="cardReference">
+          <div class="rec-head">
+            <span class="rec-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><line x1="12" y1="17.5" x2="12" y2="21"/><line x1="8.5" y1="21" x2="15.5" y2="21"/></svg>
+            </span>
+            <div class="rec-titles">
+              <h3>音色参考</h3>
+              <p class="rec-hint">请说 10~30 秒话，作为你的音色参考</p>
+            </div>
+          </div>
+          <div class="rec-stage" id="stageReference"></div>
+          <!-- 音色画像：参考音频就绪后自动分析，JS 动态渲染加载 / 结果 / 失败三态 -->
+          <div class="timbre-panel" id="timbrePanel" hidden></div>
+        </article>
+
+        <article class="card rec-card" id="cardSource">
+          <div class="rec-head">
+            <span class="rec-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17.5V5.8a1 1 0 0 1 .8-1l8-1.6a1 1 0 0 1 1.2 1v10.3"/><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="14.5" r="2.5"/></svg>
+            </span>
+            <div class="rec-titles">
+              <h3>清唱片段</h3>
+              <p class="rec-hint">请清唱一段你想让克隆音色唱的歌</p>
+            </div>
+          </div>
+          <div class="rec-stage" id="stageSource"></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- 第二步：转换设置与转换 -->
+    <section class="step" id="step2">
+      <div class="step-head">
+        <span class="step-num">02</span>
+        <div class="step-titles">
+          <h2>转换设置与转换</h2>
+          <p>选择「清唱转换」或「翻唱歌曲」模式，调整参数后开始</p>
+        </div>
+      </div>
+      <div class="card settings-card">
+        <!-- 模式 Tab：清唱转换 / 翻唱歌曲（切换面板，互不清空状态） -->
+        <div class="mode-tabs" role="tablist" aria-label="转换模式">
+          <button type="button" id="tabSolo" class="mode-tab active" role="tab" aria-selected="true" aria-controls="paneSolo">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><line x1="12" y1="17.5" x2="12" y2="21"/></svg>
+            <span>清唱转换</span>
+          </button>
+          <button type="button" id="tabCover" class="mode-tab" role="tab" aria-selected="false" aria-controls="paneCover">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.4"/><path d="M12 3.5v1.6"/></svg>
+            <span>翻唱歌曲</span>
+          </button>
+        </div>
+
+        <!-- 两种模式共用：半音移调（男↔女声适配） -->
+        <div class="setting-block">
+          <div class="setting-head">
+            <label for="semi">半音移调 <span class="head-sub">男↔女声适配 · 两种模式通用</span></label>
+            <output id="semiVal" class="range-val">0</output>
+          </div>
+          <input type="range" id="semi" min="-12" max="12" step="1" value="0" aria-label="半音移调">
+          <div class="range-scale" aria-hidden="true"><span>-12</span><span>-6</span><span>0</span><span>+6</span><span>+12</span></div>
+          <ul class="shift-notes" id="shiftNotes">
+            <li data-range="down">女声参考 → 男声唱：约 <b>-8 ~ -12</b></li>
+            <li data-range="same">同性别、同音域：<b>0</b></li>
+            <li data-range="up">男声参考 → 女声唱：约 <b>+8 ~ +12</b></li>
+          </ul>
+        </div>
+
+        <!-- 清唱转换面板 -->
+        <div class="mode-pane" id="paneSolo" role="tabpanel" aria-labelledby="tabSolo">
+          <details class="adv">
+            <summary>
+              <span class="adv-ic" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 8h9"/><circle cx="17" cy="8" r="2.4"/><path d="M20 16h-9"/><circle cx="7" cy="16" r="2.4"/></svg>
+              </span>
+              高级选项
+              <i class="chev" aria-hidden="true"></i>
+            </summary>
+            <div class="setting-block">
+              <div class="setting-head">
+                <label for="steps">扩散步数</label>
+                <output id="stepsVal" class="range-val teal">30</output>
+              </div>
+              <input type="range" id="steps" class="range-teal" min="10" max="50" step="1" value="30" aria-label="扩散步数">
+              <div class="range-scale" aria-hidden="true"><span>10</span><span>30</span><span>50</span></div>
+              <p class="note">越高音质越好、越慢</p>
+            </div>
+          </details>
+
+          <!-- 调教开关：选中训练模型（RVC）时禁用并注明原因 -->
+          <div class="setting-block solo-tweaks">
+            <label class="check-row" for="hqSolo">
+              <input type="checkbox" id="hqSolo">
+              <span>高质量模式</span>
+            </label>
+            <p class="note">开启后扩散步数 30 → 50：音质更好，耗时约 +60%</p>
+            <label class="check-row check-row-gap" for="pcSolo">
+              <input type="checkbox" id="pcSolo">
+              <span>音准修正</span>
+            </label>
+            <p class="note">轻微修正跑调，默认关</p>
+            <p class="note gate-note" id="gateNoteSolo" hidden></p>
+          </div>
+
+          <div class="convert-row">
+            <button type="button" id="convertBtn" class="btn btn-primary btn-convert">
+              <span class="when-idle">开始转换</span>
+              <span class="when-busy"><span class="spinner" aria-hidden="true"></span>转换中…</span>
+            </button>
+            <p class="convert-note">首次转换需加载模型约 1 分钟（权重已本地化，无需联网），请耐心等待</p>
+            <div class="status-line" id="statusLine" aria-live="polite"></div>
+          </div>
+        </div>
+
+        <!-- 翻唱歌曲面板 -->
+        <div class="mode-pane" id="paneCover" role="tabpanel" aria-labelledby="tabCover" hidden>
+          <div class="setting-block">
+            <div class="setting-head">
+              <label for="songUrl">歌曲来源</label>
+              <span class="src-kind" id="srcKind"></span>
+            </div>
+            <input type="url" id="songUrl" class="song-url" placeholder="粘贴 B 站视频/音频链接…" autocomplete="off" spellcheck="false" aria-label="歌曲链接">
+            <div class="src-divider" aria-hidden="true"><span>或</span></div>
+            <label class="btn" id="songFileBtn">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/><path d="M4.5 15.5v3a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-3"/></svg>
+              <span>从本地上传歌曲文件</span>
+              <input type="file" id="songFile" accept=".mp3,.flac,.wav,.m4a,.ogg,.webm" hidden>
+            </label>
+            <div class="song-picked" id="songPicked" hidden>
+              <i class="ready-dot" aria-hidden="true"></i>
+              <span class="sp-text" id="songPickedText"></span>
+              <button type="button" class="btn btn-sm" id="songClear">移除</button>
+            </div>
+            <p class="note">支持 mp3 / flac / wav / m4a / ogg / webm · 不超过 100MB 或 10 分钟 · 链接与文件二选一</p>
+            <!-- 经典测试歌曲快捷入口：点击 chip 即填入上方链接输入框（与手动输入等价） -->
+            <details class="adv ktv-adv" id="ktvAdv">
+              <summary>
+                <span class="adv-ic" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17.5V5.8a1 1 0 0 1 .8-1l8-1.6a1 1 0 0 1 1.2 1v10.3"/><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="14.5" r="2.5"/></svg>
+                </span>
+                经典测试歌曲
+                <span class="head-sub">KTV 精选（男声/女声 20 首）· 点击填入链接</span>
+                <i class="chev" aria-hidden="true"></i>
+              </summary>
+              <div class="ktv-list" id="ktvList"></div>
+              <div class="ktv-detail" id="ktvDetail" hidden></div>
+              <p class="note">链接来自 B 站伴奏区投稿，若失效请手动粘贴或改用本地上传</p>
+            </details>
+          </div>
+
+          <div class="setting-block">
+            <label class="check-row" for="autoF0">
+              <input type="checkbox" id="autoF0">
+              <span>自动对齐音域</span>
+            </label>
+            <p class="note">原曲调不适合你的音域时勾选：AI 会自动把旋律对齐到参考音色的音域</p>
+            <label class="check-row check-row-gap" for="hqCover">
+              <input type="checkbox" id="hqCover">
+              <span>高质量模式</span>
+            </label>
+            <p class="note">开启后扩散步数 30 → 50：音质更好，耗时约 +60%</p>
+            <label class="check-row check-row-gap" for="pcCover">
+              <input type="checkbox" id="pcCover">
+              <span>音准修正</span>
+            </label>
+            <p class="note">轻微修正跑调，默认关</p>
+            <p class="note gate-note" id="gateNoteCover" hidden></p>
+          </div>
+
+          <div class="convert-row">
+            <button type="button" id="coverBtn" class="btn btn-primary btn-convert">
+              <span class="when-idle">开始翻唱</span>
+              <span class="when-busy"><span class="spinner" aria-hidden="true"></span>翻唱中…</span>
+            </button>
+            <div class="cover-progress" id="coverProgress" hidden>
+              <ol class="stage-list" id="stageList">
+                <li data-stage="解析"><i class="st-dot" aria-hidden="true"></i><span>解析</span></li>
+                <li data-stage="下载"><i class="st-dot" aria-hidden="true"></i><span>下载</span></li>
+                <li data-stage="预处理"><i class="st-dot" aria-hidden="true"></i><span>预处理</span></li>
+                <li data-stage="分离"><i class="st-dot" aria-hidden="true"></i><span>分离</span></li>
+                <li data-stage="转换"><i class="st-dot" aria-hidden="true"></i><span>转换</span></li>
+                <li data-stage="混音"><i class="st-dot" aria-hidden="true"></i><span>混音</span></li>
+              </ol>
+              <div class="cover-bar" id="coverBar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="翻唱进度">
+                <i class="cover-bar-fill" id="coverBarFill"></i>
+              </div>
+              <div class="cover-status">
+                <span class="cover-pct" id="coverPct">0%</span>
+                <span class="cover-detail" id="coverDetail"></span>
+              </div>
+              <p class="cover-queue" id="coverQueue" hidden></p>
+              <div class="cover-fail" id="coverFail" hidden>
+                <p class="cover-fail-msg" id="coverFailMsg"></p>
+                <button type="button" class="btn btn-sm" id="coverRetry">重新翻唱</button>
+              </div>
+            </div>
+            <p class="convert-note">整曲翻唱约 3~5 分钟，首次还需加载模型约 1 分钟 · 进行中不支持取消，如需放弃可刷新页面</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 第三步：结果 -->
+    <section class="step" id="step3">
+      <div class="step-head">
+        <span class="step-num">03</span>
+        <div class="step-titles">
+          <h2>结果</h2>
+          <p>试听克隆歌声，满意后导出 MP3</p>
+        </div>
+      </div>
+      <div class="card result-card">
+        <div class="result-empty" id="resultEmpty">
+          <svg viewBox="0 0 72 40" width="76" height="42" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true">
+            <path d="M4 20h3"/><path d="M13 13v14"/><path d="M22 7v26"/><path d="M31 15v10"/><path d="M40 10v20"/><path d="M49 5v30"/><path d="M58 14v12"/><path d="M67 19h2"/>
+          </svg>
+          <p>转换完成后，克隆歌声会出现在这里</p>
+        </div>
+        <div class="result-body" id="resultBody" hidden>
+          <div class="audio-wrap">
+            <audio id="resultAudio" controls preload="metadata"></audio>
+          </div>
+          <div class="result-foot">
+            <span class="result-meta-line">
+              <span class="kind-badge" id="resultKindBadge" hidden>翻唱成品</span>
+              <span class="result-match" id="resultMatch" hidden>
+                <span class="kind-badge match-badge" id="matchBadge"></span>
+                <span class="match-note">声纹余弦口径，供参考；实际效果请 A/B 试听</span>
+              </span>
+              <span class="result-meta" id="resultMeta"></span>
+            </span>
+            <button type="button" id="exportBtn" class="btn btn-primary btn-export">
+              <span class="when-idle">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M4.5 19.5h15"/></svg>
+                导出 MP3
+              </span>
+              <span class="when-busy"><span class="spinner" aria-hidden="true"></span>导出中…</span>
+            </button>
+          </div>
+          <!-- 混音调节（仅翻唱成品显示）：人声音量重混 + 人声分轨导出 -->
+          <div class="remix-block" id="remixBlock" hidden>
+            <div class="setting-head">
+              <label for="vocalGain">混音调节 · 人声音量</label>
+              <output id="vocalGainVal" class="range-val teal">100%</output>
+            </div>
+            <input type="range" id="vocalGain" class="range-teal" min="0.3" max="2" step="0.1" value="1" aria-label="人声音量">
+            <div class="range-scale" aria-hidden="true"><span>30%</span><span>100%</span><span>200%</span></div>
+            <div class="remix-actions">
+              <button type="button" id="remixBtn" class="btn btn-primary btn-sm">
+                <span class="when-idle">重新混音</span>
+                <span class="when-busy"><span class="spinner" aria-hidden="true"></span>混音中…</span>
+              </button>
+              <button type="button" id="stemsBtn" class="btn btn-sm">下载清唱（无伴奏）</button>
+              <button type="button" id="stemsMp3Btn" class="btn-link" hidden>清唱转 MP3</button>
+            </div>
+            <p class="note">重混会以当前人声音量重新合成并替换上方成品 · 历史任务可能未保留分轨</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>音色克隆 · 唱出你的声音 — 所有推理均在本地服务完成 · 推荐使用最新版 Chrome / Edge 访问</footer>
+
+  <div id="toasts" aria-live="polite"></div>
+
+  <!-- 连接设置弹窗：跨源后端地址 / API Token（localStorage 持久化） -->
+  <div class="modal-overlay" id="settingsModal" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="modal-head">
+        <h3 id="settingsTitle">连接设置</h3>
+        <button type="button" class="modal-close" id="settingsClose" aria-label="关闭设置">×</button>
+      </div>
+      <div class="setting-block">
+        <div class="setting-head">
+          <label for="apiBaseInput">后端地址</label>
+        </div>
+        <input type="url" id="apiBaseInput" class="text-input" placeholder="留空 = 本页同源（本机使用推荐）" autocomplete="off" spellcheck="false" aria-label="后端地址">
+        <p class="note">如 http://192.168.1.5:8760 或隧道 https://xxx.trycloudflare.com · 留空则访问本页所在服务</p>
+      </div>
+      <div class="setting-block">
+        <div class="setting-head">
+          <label for="apiTokenInput">API Token（可选）</label>
+        </div>
+        <input type="password" id="apiTokenInput" class="text-input" placeholder="部署态启用鉴权时填写" autocomplete="off" aria-label="API Token">
+        <p class="note">仅部署态需要；保存后所有请求自动携带 X-API-Token 头</p>
+      </div>
+      <p class="modal-help">GPU 推理运行在你自己的电脑上：本机访问留空即可；手机 / 其它设备请填电脑的局域网地址或隧道地址；Chrome / Edge 首次连接本机后端会请求「本地网络访问」权限，请允许；Safari 暂不支持连接 http 本机地址</p>
+      <p class="settings-probe" id="settingsProbe" hidden></p>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="settingsClear">清除配置</button>
+        <button type="button" class="btn btn-primary" id="settingsSave">保存并测试连接</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

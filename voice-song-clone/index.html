@@ -385,13 +385,13 @@
               <span class="when-busy"><span class="spinner" aria-hidden="true"></span>导出中…</span>
             </button>
           </div>
-          <!-- 混音调节（仅翻唱成品显示）：人声音量重混 + 人声分轨导出 -->
+          <!-- 混音调节（仅翻唱成品显示）：人声/伴奏比例重混 + 人声分轨导出 -->
           <div class="remix-block" id="remixBlock" hidden>
             <div class="setting-head">
-              <label for="vocalGain">混音调节 · 人声音量</label>
+              <label for="vocalGain">混音调节 · 人声 / 伴奏比例</label>
               <output id="vocalGainVal" class="range-val teal">100%</output>
             </div>
-            <input type="range" id="vocalGain" class="range-teal" min="0.3" max="2" step="0.1" value="1" aria-label="人声音量">
+            <input type="range" id="vocalGain" class="range-teal" min="0.3" max="2" step="0.1" value="1" aria-label="人声 / 伴奏比例">
             <div class="range-scale" aria-hidden="true"><span>30%</span><span>100%</span><span>200%</span></div>
             <div class="remix-actions">
               <button type="button" id="remixBtn" class="btn btn-primary btn-sm">
@@ -401,7 +401,7 @@
               <button type="button" id="stemsBtn" class="btn btn-sm">下载清唱（无伴奏）</button>
               <button type="button" id="stemsMp3Btn" class="btn-link" hidden>清唱转 MP3</button>
             </div>
-            <p class="note">重混会以当前人声音量重新合成并替换上方成品 · 历史任务可能未保留分轨</p>
+            <p class="note">仅调节人声相对伴奏的音量（平滑档自动对齐响度；自然档为直混，人声拉过高可能削波，已加限幅保护），重混替换上方成品 · 历史任务可能未保留分轨</p>
           </div>
         </div>
       </div>

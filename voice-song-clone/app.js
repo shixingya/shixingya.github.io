@@ -105,7 +105,7 @@ const cover = {
   pollTimer: 0,     // 轮询 setTimeout 句柄
   netFails: 0,      // 连续网络失败计数（≥3 终止轮询）
   song: null,       // 歌曲来源：{type:'file',file,duration} | {type:'url',url}
-  lastJobId: null,  // 最近一次成功提交的翻唱任务 ID（coverDoneFinish 清空 jobId 后仍保留，供重混音/分轨导出）
+  lastJobId: null,  // 最近一次成功完成的翻唱任务 ID（coverDoneFinish 落账；失败/进行中的新任务不覆盖，供重混音/分轨导出）
 };
 
 /* 声音模型状态：模型下拉 + 专属音色训练任务（与转换 / 翻唱三方互斥） */
@@ -1005,7 +1005,8 @@ async function startCover() {
     if (!data || !data.job_id) throw new Error('发起翻唱失败：服务端未返回任务 ID');
 
     cover.jobId = data.job_id;
-    cover.lastJobId = data.job_id;
+    /* lastJobId 不在此处写入：新任务运行/失败期间，旧成品卡的 remix/stems 仍应指向
+     * 上一个成功完成的任务，避免带错 job_id 撞 404；完成时由 coverDoneFinish 落账 */
     cover.netFails = 0;
     coverDetail.textContent = data.message ? `任务已创建：${data.message}` : '任务已创建，等待调度…';
     scheduleNextPoll();
@@ -1127,6 +1128,7 @@ function coverFailFinish(msg) {
 function coverDoneFinish() {
   clearTimeout(cover.pollTimer);
   cover.running = false;
+  cover.lastJobId = cover.jobId; /* 仅完成时落账；失败分支不写，保留上一个可 remix 的任务 */
   cover.jobId = null;
   coverQueue.hidden = true;
   setStageHighlight(stageList, COVER_STAGES, COVER_STAGES.length);
@@ -1150,8 +1152,8 @@ renderKtvChips();
  *       → 200 audio/wav（重混成品，服务端已覆盖 cover.wav）+ X-Match-Score（有则带）
  *       GET /api/cover/stems/{job_id}?stem=vocals → 200 audio/wav
  *       404 任务不存在/未完成/分轨缺失；400 mix_preset 非法（本期 UI 不发送该字段）
- * 任务 ID 取 cover.lastJobId：coverDoneFinish 会清空 jobId，lastJobId 保留会话内
- * 最近一次成功提交的任务，供重混音与分轨导出使用。
+ * 任务 ID 取 cover.lastJobId：最近一次成功完成的翻唱任务（coverDoneFinish 落账，
+ * 进行中/失败的新任务不覆盖），供重混音与分轨导出使用。
  * ===================================================================== */
 
 const remixBlock = $('#remixBlock');
@@ -1229,6 +1231,8 @@ function applyRemixResult(wav, matchPct) {
   if (Number.isFinite(matchPct)) {
     resultMatch.hidden = false;
     matchBadge.textContent = `音色匹配度 ${matchPct}%`;
+  } else {
+    resultMatch.hidden = true; /* 重混未回分数时清掉旧徽章，避免残留误导 */
   }
 }
 
@@ -1415,8 +1419,10 @@ function renderTimbreResult(data) {
  * 「为你推荐」：按 voice_class 从 KTV 歌单生成个性化推荐（第四期）
  * 排序：male_* → 男声组在前（女声组「易」难度曲附后最多 2 首）；
  *       female_* → 女声组在前；组内难度升序（易→中→难），稳定排序。
- * 建议移调：shift = clamp(round(12·log2(lead_f0_hz / f0_median_hz)), -12, 12)。
- *   方向已核对：与移调滑杆语义一致（负 = 降 key），点击 chip 直接写入，无需取反。
+ * 建议移调：shift = clamp(round(12·log2(f0_median_hz / lead_f0_hz)), -12, 12)。
+ *   shift 为作用于源歌曲的移调量（正 = 升 key，负 = 降 key）：把歌的原调人声落到
+ *   用户音域（如 120Hz 男声唱 205Hz 的歌 → 约 -9 降 key），与移调滑杆语义一致，
+ *   点击 chip 直接写入，无需取反。
  * ===================================================================== */
 
 const VOICE_CLASS_NOTES = {
@@ -1427,10 +1433,10 @@ const VOICE_CLASS_NOTES = {
   female_high: '偏高女声：女声组全适配',
 };
 
-/* 建议移调（半音）；入参非法时返回 0（按原调处理） */
+/* 建议移调（半音，作用于源歌曲：正 = 升 key / 负 = 降 key）；入参非法时返回 0（按原调处理） */
 function computeShift(leadF0, f0Median) {
   if (!Number.isFinite(leadF0) || !Number.isFinite(f0Median) || leadF0 <= 0 || f0Median <= 0) return 0;
-  return Math.max(-12, Math.min(12, Math.round(12 * Math.log2(leadF0 / f0Median))));
+  return Math.max(-12, Math.min(12, Math.round(12 * Math.log2(f0Median / leadF0))));
 }
 
 /* 推荐排序（纯逻辑，node 单测直接提取本函数与 KTV_SONGS 断言） */
@@ -1995,7 +2001,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && !settingsModal.hidden) closeSettings();
 });
 
-/* 连通性探测：GET {API_BASE}/api/voice/models，展示后端版本 / 模型数 */
+/* 连通性探测：GET {API_BASE}/api/voice/models，展示模型数 */
 async function probeConnection() {
   settingsProbe.hidden = false;
   settingsProbe.className = 'settings-probe is-busy';
@@ -2011,9 +2017,8 @@ async function probeConnection() {
     }
     const data = await res.json();
     const n = Array.isArray(data && data.models) ? data.models.length : 0;
-    const ver = (data && typeof data.version === 'string' && data.version) ? ` · 后端 ${data.version}` : '';
     settingsProbe.className = 'settings-probe is-ok';
-    settingsProbe.textContent = `连接成功：发现 ${n} 个声音模型${ver}`;
+    settingsProbe.textContent = `连接成功：发现 ${n} 个声音模型`;
   } catch (err) {
     settingsProbe.className = 'settings-probe is-error';
     settingsProbe.textContent = err instanceof TypeError
